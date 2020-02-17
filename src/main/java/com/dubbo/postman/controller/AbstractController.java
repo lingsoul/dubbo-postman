@@ -24,15 +24,15 @@
 
 package com.dubbo.postman.controller;
 
-import com.dubbo.postman.repository.RedisRepository;
+import com.dubbo.postman.dao.AppDao;
+import com.dubbo.postman.dao.ServiceDao;
+import com.dubbo.postman.dao.ZkAddressDao;
 import com.dubbo.postman.domain.DubboInterfaceModel;
 import com.dubbo.postman.domain.DubboModel;
-import com.dubbo.postman.util.RedisKeys;
 import com.dubbo.postman.util.JSON;
-import com.dubbo.postman.util.CommonUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,18 +43,28 @@ import java.util.Map;
 @Service
 public abstract class AbstractController {
 
-    @Autowired
-    private RedisRepository cacheService;
+
+    @Resource
+    ZkAddressDao zkAddressDao;
+
+    @Resource
+    AppDao appDao;
+
+    @Resource
+    ServiceDao serviceDao;
+
 
     Map<String,String> getAllClassName(String zk,String serviceName){
 
-        String modelKey = CommonUtil.getDubboModelKey(zk,serviceName);
+        Long zkId = zkAddressDao.getZkId(zk);
 
-        Object object = cacheService.mapGet(RedisKeys.DUBBO_MODEL_KEY,modelKey);
+        Long appId = appDao.getAppId(zkId,serviceName);
+
+        String modelObj = serviceDao.getServiceDO(zkId,appId).getServiceInfo();
 
         Map<String,String> interfaceMap = new HashMap<>(10);
 
-        DubboModel dubboModel = JSON.parseObject((String)object,DubboModel.class);
+        DubboModel dubboModel = JSON.parseObject(modelObj, DubboModel.class);
 
         for(DubboInterfaceModel serviceModel : dubboModel.getServiceModelList()){
 

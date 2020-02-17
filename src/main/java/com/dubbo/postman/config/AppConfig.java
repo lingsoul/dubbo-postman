@@ -24,15 +24,18 @@
 
 package com.dubbo.postman.config;
 
-import com.dubbo.postman.repository.RedisRepository;
+import com.dubbo.postman.dao.AppDao;
+import com.dubbo.postman.dao.ServiceDao;
+import com.dubbo.postman.dao.ZkAddressDao;
 import com.dubbo.postman.service.dubboinvoke.TemplateBuilder;
 import com.dubbo.postman.service.maven.MavenProcessor;
-import com.dubbo.postman.util.RedisKeys;
 import com.dubbo.postman.util.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import javax.annotation.Resource;
 
 /**
  * @author everythingbest
@@ -48,10 +51,16 @@ public class AppConfig {
     String apiJarPath;
 
     @Autowired
-    private RedisRepository redisRepository;
-
-    @Autowired
     private TemplateBuilder templateBuilder;
+
+    @Resource
+    ZkAddressDao zkAddressDao;
+
+    @Resource
+    AppDao appDao;
+
+    @Resource
+    ServiceDao serviceDao;
 
     @Bean
     MavenProcessor mavenProcessor(){
@@ -69,9 +78,9 @@ public class AppConfig {
 
         initializer.copySettingXml(apiJarPath);
 
-        initializer.loadZkAddress(redisRepository);
+        initializer.loadZkAddress(zkAddressDao);
 
-        initializer.loadCreatedService(redisRepository, RedisKeys.DUBBO_MODEL_KEY,templateBuilder);
+        initializer.loadCreatedService(zkAddressDao, appDao, serviceDao, templateBuilder);
 
         return initializer;
     }

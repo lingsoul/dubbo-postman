@@ -35,7 +35,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 如果使用cas,把exclude及后面的值去掉即可
  * @author everythingbest
  */
-@SpringBootApplication(exclude = org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration.class)
+@SpringBootApplication(exclude = org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class)
 public class Main {
 
     private static Logger logger = LoggerFactory.getLogger(Main.class);
@@ -43,7 +43,7 @@ public class Main {
     public static void main(String[] args) {
 
         logger.warn("开始启动DUBBO-POSTMAN");
-
+        System.setProperty("jute.maxbuffer", 4096 * 1024 * 10 + "");
         SpringApplication app = new SpringApplication(Main.class);
 
         app.setBannerMode(Banner.Mode.CONSOLE);

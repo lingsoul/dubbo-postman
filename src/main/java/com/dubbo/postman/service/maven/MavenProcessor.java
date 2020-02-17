@@ -24,11 +24,24 @@
 
 package com.dubbo.postman.service.maven;
 
+import com.dubbo.postman.util.FileWithString;
 import com.dubbo.postman.util.LogResultPrintStream;
+import com.sun.org.apache.xerces.internal.dom.NodeImpl;
 import org.apache.maven.cli.MavenCli;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -114,19 +127,23 @@ public class MavenProcessor {
 
         try {
 
-            resultPrintStream.println("开始下载:"+artifactId + ".jar文件");
+        //    resultPrintStream.println("开始下载:"+artifactId + ".jar文件");
 
-            doDownLoadFile(jarUrl, jarPath, artifactId + ".jar");
+         //   doDownLoadFile(jarUrl, jarPath, artifactId + ".jar");
 
-            resultPrintStream.println("下载:"+artifactId + ".jar文件成功");
+       //     resultPrintStream.println("下载:"+artifactId + ".jar文件成功");
 
             resultPrintStream.println("开始下载:"+artifactId + "的pom.xml文件");
 
-            doDownLoadFile(pomUrl, pomPath, "pom.xml");
+         //   doDownLoadFile(pomUrl, pomPath, "pom.xml");
+
+            copyPom(pomPath,groupId,artifactId,version);
+
+
 
             resultPrintStream.println("下载:"+artifactId + "的pom.xml文件成功");
 
-        }catch (IOException exp){
+        }catch (Exception exp){
 
             resultPrintStream.println("[ERROR]下载pom.xml或api.jar文件失败:"+exp.getMessage());
             logger.warn("下载pom或jar失败:",exp);
@@ -142,18 +159,17 @@ public class MavenProcessor {
         MavenCli cli = new MavenCli();
 
         resultPrintStream.println("处理api.jar的所有依赖,通过执行maven命令: 'mvn dependency:copy-dependencies"
-                + " -DoutputDirectory=./lib -DexcludeScope=provided -U'");
+                + " -DoutputDirectory=./lib -DexcludeScope=provided "+"-s"+fileBasePath+"/.m2/setting.xml"+" -U'");
 
         resultPrintStream.println("开发执行maven命令");
 
         System.setProperty("maven.multiModuleProjectDirectory","./");
-
         int result = cli.doMain(new String[]{
                                               "dependency:copy-dependencies",
                                               "-DoutputDirectory=./lib",
-                                              "-DexcludeScope=provided ",
+                                              "-DexcludeScope=provided ","-s"+fileBasePath+"/.m2/setting.xml",
                                               "-U"}, pomPath, resultPrintStream, resultPrintStream);
-
+ //       int result = 0;
 
         boolean success = (result == 0);
 
@@ -219,36 +235,125 @@ public class MavenProcessor {
     String buildJarUrl(String groupId,String artifactId,String version){
         
         String upperV = version.trim().toUpperCase();
-        
+
         String suffixUrl;
-        
+
         if(upperV.endsWith("SNAPSHOT")){
-        
-            suffixUrl = "?r="+"snapshots&g="+groupId+"&a="+artifactId+"&v="+version+"&e=jar";
-        
+
+         //   suffixUrl = "?r="+"snapshots&g="+groupId+"&a="+artifactId+"&v="+version+"&e=jar";
+
+            suffixUrl = "repository/maven-snapshots/"+groupId.replaceAll("\\.","\\/")+"/"+artifactId+"/"+version.substring(0,version.indexOf("-"))+"-SNAPSHOT"+"/"+artifactId+"-"+upperV.replace("-SNAPSHOT",".jar");
+
         }else{
-        
-            suffixUrl = "?r="+"releases&g="+groupId+"&a="+artifactId+"&v="+version+"&e=jar";
+
+            //suffixUrl = "?r="+"releases&g="+groupId+"&a="+artifactId+"&v="+version+"&e=jar";
+            suffixUrl = "repository/maven-releases/"+groupId.replaceAll("\\.","\\/")+"/"+artifactId+"/"+version+"/"+artifactId+"-"+version+".jar";
         }
-        
+
         return nexusUrl+suffixUrl;
+
+     //   return "http://120.26.50.3:8081/repository/maven-releases/com/qudian/pay/charging-common/1.3.0-RELEASE/charging-common-1.3.0-RELEASE.jar";
+
     }
     
     String buildPomUrl(String groupId,String artifactId,String version){
         
         String upperV = version.trim().toUpperCase();
-    
+
         String suffixUrl;
-    
+
         if(upperV.endsWith("SNAPSHOT")){
-        
-            suffixUrl = "?r="+"snapshots&g="+groupId+"&a="+artifactId+"&v="+version+"&e=pom";
-        
+
+            suffixUrl = "repository/maven-snapshots/"+groupId.replaceAll("\\.","\\/")+"/"+artifactId+"/"+version.substring(0,version.indexOf("-"))+"-SNAPSHOT"+"/"+artifactId+"-"+upperV.replace("-SNAPSHOT",".pom");;
+
         }else{
-        
-            suffixUrl = "?r="+"releases&g="+groupId+"&a="+artifactId+"&v="+version+"&e=pom";
+
+            suffixUrl = "repository/maven-releases/"+groupId.replaceAll("\\.","\\/")+"/"+artifactId+"/"+version+"/"+artifactId+"-"+version+".pom";
         }
-    
+
         return nexusUrl+suffixUrl;
+
+   //     return "http://120.26.50.3:8081/repository/maven-releases/com/qudian/pay/charging-common/1.3.0-RELEASE/charging-common-1.3.0-RELEASE.pom";
+
     }
+
+
+
+    void copyPom(String newPath,String groupId, String artifactId, String version) throws Exception{
+
+        try {
+
+            DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+
+            DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+
+            byte[] bytes;
+
+            URL url = this.getClass().getClassLoader().getResource("config/pom.xml");
+            String content = FileWithString.file2String(url);
+            bytes = content.getBytes();
+
+            ByteArrayInputStream bi = new ByteArrayInputStream(bytes);
+
+            Document doc = dBuilder.parse(bi);
+
+            doc.getDocumentElement().normalize();
+
+            logger.info("Root element :" + doc.getDocumentElement().getNodeName());
+
+            NodeList nList = doc.getElementsByTagName("dependencies");
+
+
+            Element dependency = doc.createElement("dependency");
+
+            Element groupIdNode = doc.createElement("groupId");
+            groupIdNode.setTextContent(groupId);
+
+            Element artifactIdNode = doc.createElement("artifactId");
+            artifactIdNode.setTextContent(artifactId);
+
+            Element versionNode = doc.createElement("version");
+            versionNode.setTextContent(version);
+
+            dependency.appendChild(groupIdNode);
+            dependency.appendChild(artifactIdNode);
+            dependency.appendChild(versionNode);
+            nList.item(0).appendChild(dependency);
+
+
+
+
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+
+            Transformer transformer = transformerFactory.newTransformer();
+
+            DOMSource source = new DOMSource(doc);
+
+            newPath = newPath + "/pom.xml";
+
+            logger.info("pom.xml路径:"+newPath);
+
+            StreamResult result = new StreamResult(new File(newPath));
+
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+            transformer.transform(source, result);
+
+            logger.info("pom.xml 生成成功");
+
+        } catch (Exception e) {
+
+            logger.error("pom.xml 生成失败");
+
+            throw e;
+        }
+    }
+
+
+
+
+
+
+
+
 }

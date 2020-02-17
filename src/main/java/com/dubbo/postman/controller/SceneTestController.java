@@ -24,12 +24,12 @@
 
 package com.dubbo.postman.controller;
 
+import com.dubbo.postman.dao.CaseDao;
 import com.dubbo.postman.dto.SceneCaseDto;
 import com.dubbo.postman.dto.AbstractCaseDto;
 import com.dubbo.postman.dto.UserCaseDto;
 import com.dubbo.postman.dto.WebApiRspDto;
-import com.dubbo.postman.repository.RedisRepository;
-import com.dubbo.postman.util.RedisKeys;
+import com.dubbo.postman.entity.SceneDO;
 import com.dubbo.postman.util.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -53,7 +54,7 @@ public class SceneTestController {
     static Logger logger = LoggerFactory.getLogger(SceneTestController.class);
 
     @Autowired
-    private RedisRepository cacheService;
+    private CaseDao caseDao;
 
     @RequestMapping(value = "case/scene/save", method = RequestMethod.POST)
     @ResponseBody
@@ -65,7 +66,9 @@ public class SceneTestController {
 
             String value = JSON.objectToString(caseDto);
 
-            cacheService.mapPut(RedisKeys.SCENE_CASE_KEY,caseName,value);
+            this.caseDao.deleteScene(caseName);
+
+            this.caseDao.addScene(caseName,value);
 
             return WebApiRspDto.success(Boolean.TRUE);
 
@@ -83,7 +86,7 @@ public class SceneTestController {
 
         try {
 
-            cacheService.removeMap(RedisKeys.SCENE_CASE_KEY,caseName);
+            this.caseDao.deleteScene(caseName);
 
             return WebApiRspDto.success(Boolean.TRUE);
 
@@ -103,15 +106,16 @@ public class SceneTestController {
 
         try{
 
-            String value = (String)cacheService.mapGet(RedisKeys.SCENE_CASE_KEY,caseName);
 
-            SceneCaseDto sceneCaseDto = JSON.parseObject(value, SceneCaseDto.class);
+            SceneDO sceneDO =  this.caseDao.getSceneByName(caseName);
+
+            SceneCaseDto sceneCaseDto = JSON.parseObject(sceneDO.getSceneData(), SceneCaseDto.class);
 
             List<UserCaseDto> identifyCaseDtos = sceneCaseDto.getCaseDtoList();
 
             for(AbstractCaseDto identifyCaseDto : identifyCaseDtos){
 
-                String jsonStr = (String) cacheService.mapGet(identifyCaseDto.getGroupName(), identifyCaseDto.getCaseName());
+                String jsonStr = this.caseDao.getCaseData(identifyCaseDto.getGroupName(), identifyCaseDto.getCaseName());
 
                 UserCaseDto caseDto = JSON.parseObject(jsonStr, UserCaseDto.class);
 
@@ -138,7 +142,13 @@ public class SceneTestController {
 
         try {
 
-            Set<Object> groupNames = cacheService.mapGetKeys(RedisKeys.SCENE_CASE_KEY);
+            List<SceneDO> sceneDOS = this.caseDao.getSceneList();
+
+            Set<Object> groupNames = new HashSet<>();
+
+            for(SceneDO sceneDO : sceneDOS){
+                groupNames.add(sceneDO.getSceneName());
+            }
 
             return WebApiRspDto.success(groupNames);
 

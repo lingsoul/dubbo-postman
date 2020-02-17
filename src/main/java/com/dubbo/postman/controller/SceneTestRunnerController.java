@@ -24,11 +24,11 @@
 
 package com.dubbo.postman.controller;
 
+import com.dubbo.postman.dao.CaseDao;
 import com.dubbo.postman.dto.SceneCaseDto;
 import com.dubbo.postman.dto.AbstractCaseDto;
 import com.dubbo.postman.dto.UserCaseDto;
 import com.dubbo.postman.dto.WebApiRspDto;
-import com.dubbo.postman.repository.RedisRepository;
 import com.dubbo.postman.service.dubboinvoke.Request;
 import com.dubbo.postman.service.scenetest.SceneTestService;
 import com.dubbo.postman.util.JSON;
@@ -57,11 +57,12 @@ public class SceneTestRunnerController {
 
     private static Logger logger = LoggerFactory.getLogger(SceneTestRunnerController.class);
 
-    @Resource
-    RedisRepository cacheService;
-
     @Autowired
     SceneTestService requestService;
+
+    @Autowired
+    CaseDao caseDao;
+
 
     @ResponseBody
     @RequestMapping(value = "case/scene/run", method = RequestMethod.POST)
@@ -73,11 +74,12 @@ public class SceneTestRunnerController {
 
             for (AbstractCaseDto dto : sceneDto.getCaseDtoList()) {
 
-                String jsonStr = (String) cacheService.mapGet(dto.getGroupName(), dto.getCaseName());
+                String jsonStr = caseDao.getCaseData(dto.getGroupName(), dto.getCaseName());
 
                 UserCaseDto caseDto = JSON.parseObject(jsonStr, UserCaseDto.class);
 
                 testCaseDtoList.add(caseDto);
+
             }
 
             List<Request> requestList = requestService.buildRequest(testCaseDtoList);

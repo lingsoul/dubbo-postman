@@ -77,7 +77,7 @@ export const constantRouterMap = [
             {
                 path: 'index',
                 component: CaseManage,
-                meta: { title: '场景测试', icon: 'nested' },
+                meta: { title: '测试用例', icon: 'nested' },
                 name: 'sceneManage'
             },
         ]
@@ -105,16 +105,6 @@ export const constantRouterMap = [
                 meta: { title: '注册中心', icon: 'list' },
                 name: 'systemConfig'
             },
-        ]
-    },
-    {
-        path: 'external-link',
-        component: Layout,
-        children: [
-            {
-                path: 'https://github.com/everythingbest/dubbo-postman/tree/master',
-                meta: { title: '使用帮助', icon: 'guide' }
-            }
         ]
     },
     {

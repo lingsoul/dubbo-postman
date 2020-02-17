@@ -32,13 +32,7 @@ public class RedisKeys {
 
     private final static String PREFIX = "dubbo_postman_";
 
-    public final static String ZK_REDIS_KEY = PREFIX +"zk_address";
-
     public static final String SCENE_CASE_KEY = PREFIX +"scene_case";
-
-    public static final String CASE_KEY = PREFIX +"test_case_group";
-
-    public static final String DUBBO_MODEL_KEY = PREFIX +"models";
 
     public static final String USER_KEY = PREFIX +"user_all";
 }

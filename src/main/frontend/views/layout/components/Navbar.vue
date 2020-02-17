@@ -33,7 +33,7 @@
               @click="clearPageCache">
         <a>清空本地存储</a>
       </div>
-
+<!--
       <el-dropdown trigger="hover" class="right-menu-item hover-effect" @command="handleSelectEnvironment">
         <div class="self-menu">
           <svg-icon icon-class="tree" />
@@ -63,6 +63,9 @@
           </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
+
+        -->
+
     </div>
   </el-menu>
 </template>

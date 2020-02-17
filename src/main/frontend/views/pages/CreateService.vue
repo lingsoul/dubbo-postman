@@ -41,8 +41,8 @@
 
             <el-row>
                 <el-col :span="13">
-                    <el-form-item label="服务名称：">
-                        <el-select v-model="zkServiceName" placeholder="DUBBO服务名称" filterable>
+                    <el-form-item label="应用名称：">
+                        <el-select v-model="zkServiceName" placeholder="提供方应用名" filterable>
                             <el-option v-for="option in serviceList" v-bind:value="option" :label="option">
                                 {{ option }}
                             </el-option>
@@ -68,11 +68,11 @@
                     <el-input
                         type="textarea"
                         :autosize="{ minRows: 7, maxRows: 7}"
-                        placeholder="推荐直接从nexus复制过来比较准确
+                        placeholder="推荐使用RELEASE坐标
 <dependency>
   <groupId>com.xx.yy</groupId>
   <artifactId>cc-service-api</artifactId>
-  <version>1.1.3-SNAPSHOT</version>
+  <version>1.1.3-RELEASE</version>
 </dependency>"
                         v-model="dependency">
                     </el-input>
@@ -80,7 +80,7 @@
                 </el-col>
             </el-row>
             <el-form-item>
-                <a :href="'http://192.168.1.177:8081/nexus/#welcome'" target="_blank" class="el-button el-button--info">
+                <a :href="'http://120.26.50.3:8081'" target="_blank" class="el-button el-button--info">
                     NEXUS地址
                 </a>
                 <el-button :loading="isCreating" type="success" v-on:click="doCreate">创建</el-button>

@@ -24,7 +24,6 @@
 
 package com.dubbo.postman.config;
 
-import com.dubbo.postman.security.UserDetailsService;
 import org.jasig.cas.client.validation.Cas20ServiceTicketValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,9 +57,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Value("${app.service.home}")
     private String SERVICE_HOME;
 
-    @Autowired
-    private UserDetailsService userDetailsService;
-
     /**
      * Spring Security 基本配置
      * @param httpSecurity
@@ -80,10 +76,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .and().csrf().disable();
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.authenticationProvider(casAuthenticationProvider());
-    }
 
     /**
      * 配置CAS登录页面
@@ -111,15 +103,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return filter;
     }
 
-//    @Bean
-    public CasAuthenticationProvider casAuthenticationProvider() {
-        CasAuthenticationProvider provider = new CasAuthenticationProvider();
-        provider.setTicketValidator(cas20ServiceTicketValidator());
-        provider.setServiceProperties(serviceProperties());
-        provider.setKey("an_id_for_this_auth_provider_only");
-        provider.setAuthenticationUserDetailsService(userDetailsByNameServiceWrapper());
-        return provider;
-    }
 
     private ServiceProperties serviceProperties() {
         ServiceProperties properties = new ServiceProperties();
@@ -128,14 +111,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return properties;
     }
 
-    /**
-     * 当CAS认证成功时, Spring Security会自动调用此类对用户进行授权
-     */
-    private UserDetailsByNameServiceWrapper userDetailsByNameServiceWrapper() {
-        UserDetailsByNameServiceWrapper wrapper = new UserDetailsByNameServiceWrapper();
-        wrapper.setUserDetailsService(userDetailsService);
-        return wrapper;
-    }
 
     private Cas20ServiceTicketValidator cas20ServiceTicketValidator() {
         Cas20ServiceTicketValidator validator = new Cas20ServiceTicketValidator(SSO_URL);

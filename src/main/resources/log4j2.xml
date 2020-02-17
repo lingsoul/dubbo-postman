@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--设置log4j2的自身log级别为warn -->
+<configuration status="warn">
+	<properties>
+		<Property name="app_name">dubbo-postman</Property>
+		<Property name="log_path">logs/${app_name}</Property>
+	</properties>
+	<appenders>
+		<console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{yyyy.MM.dd '-' HH:mm:ss} %-5level %class{36} %L %M - %msg%xEx%n" />
+		</console>
+
+		<RollingFile name="RollingFileInfo" fileName="${log_path}/info.log"
+					 filePattern="${log_path}/info/$${date:yyyy-MM}/$${date:yyyy-MM-dd}/info-%d{yyyy-MM-dd-HHmmss}.log.gz">
+			<Filters>
+				<ThresholdFilter level="INFO" />
+				<ThresholdFilter level="WARN" onMatch="DENY"
+					onMismatch="NEUTRAL" />
+			</Filters>
+			<PatternLayout pattern="%d{yyyy.MM.dd '-' HH:mm:ss} %-5level %class{36} %L %M - %msg%xEx%n" />
+			<SizeBasedTriggeringPolicy size="50MB" />
+		</RollingFile>
+
+		<RollingFile name="RollingFileWarn" fileName="${log_path}/warn.log"
+			filePattern="${log_path}/$${date:yyyy-MM}/warn-%d{yyyy-MM-dd}-%d{yyyy-MM-dd-HHmmss}.log.gz">
+			<Filters>
+				<ThresholdFilter level="WARN" />
+				<ThresholdFilter level="ERROR" onMatch="DENY"
+					onMismatch="NEUTRAL" />
+			</Filters>
+			<PatternLayout pattern="%d{yyyy.MM.dd '-' HH:mm:ss} %-5level %class{36} %L %M - %msg%xEx%n" />
+			<SizeBasedTriggeringPolicy size="50 MB" />
+		</RollingFile>
+
+		<RollingFile name="RollingFileError" fileName="${log_path}/error.log"
+					 filePattern="${log_path}/error/$${date:yyyy-MM}/$${date:yyyy-MM-dd}/error-%d{yyyy-MM-dd-HHmmss}.log.gz">
+			<ThresholdFilter level="ERROR" />
+			<PatternLayout pattern="%d{yyyy.MM.dd '-' HH:mm:ss} %-5level %class{36} %L %M - %msg%xEx%n" />
+			<SizeBasedTriggeringPolicy size="50 MB" />
+		</RollingFile>
+
+
+
+	</appenders>
+
+	<loggers>
+		<root level="info">
+			<appender-ref ref="Console" />
+			<appender-ref ref="RollingFileInfo" />
+			<appender-ref ref="RollingFileWarn" />
+			<appender-ref ref="RollingFileError" />
+		</root>
+	</loggers>
+
+</configuration>

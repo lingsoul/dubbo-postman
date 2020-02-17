@@ -24,9 +24,13 @@
 
 package com.dubbo.postman.controller;
 
+import com.dubbo.postman.dao.AppDao;
+import com.dubbo.postman.dao.ServiceDao;
+import com.dubbo.postman.dao.ZkAddressDao;
 import com.dubbo.postman.dto.WebApiRspDto;
+import com.dubbo.postman.entity.AppDO;
+import com.dubbo.postman.entity.ServiceDO;
 import com.dubbo.postman.service.load.LoadRuntimeInfo;
-import com.dubbo.postman.repository.RedisRepository;
 import com.dubbo.postman.service.appcreate.DubboAppCreator;
 import com.dubbo.postman.service.appfind.zk.ZkServiceFactory;
 import com.dubbo.postman.service.appfind.entity.InterfaceMetaInfo;
@@ -60,15 +64,21 @@ public class AppCreateController {
     
     @Autowired
     private DubboAppCreator dubboAppCreator;
-    
-    @Autowired
-    private RedisRepository redisRepository;
 
     @Resource
     TemplateBuilder templateBuilder;
 
     @Resource
     LoadRuntimeInfo loadJarClassService;
+
+    @Resource
+    AppDao appDao;
+
+    @Resource
+    ZkAddressDao zkAddressDao;
+
+    @Resource
+    ServiceDao serviceDao;
 
     @RequestMapping(value = "create",method = RequestMethod.GET)
     @ResponseBody
@@ -77,7 +87,7 @@ public class AppCreateController {
                                       @RequestParam("dependency") String dependency){
     
         if(serviceName == null || serviceName.isEmpty()){
-            return WebApiRspDto.error("必须选择一个服务名称",-1);
+            return WebApiRspDto.error("必须选择一个应用名称",-1);
         }
         
         if(dependency == null || dependency.isEmpty()){
@@ -147,26 +157,28 @@ public class AppCreateController {
 
         if(serviceName == null || serviceName.isEmpty()){
 
-            return WebApiRspDto.error("必须选择一个服务名称",-1);
+            return WebApiRspDto.error("必须选择一个应用名称",-1);
         }
-
-        String modelKey = CommonUtil.getDubboModelKey(zk, serviceName);
-
-        Object modelObj = redisRepository.mapGet(RedisKeys.DUBBO_MODEL_KEY, modelKey);
-
-        DubboModel dubboModel = JSON.parseObject((String) modelObj,DubboModel.class);
-
-        String g = dubboModel.getGroupId();
-
-        String a = dubboModel.getArtifactId();
-
-        String v = dubboModel.getVersion();
-
-        String versionDirName = v.replaceAll("\\.","_");
 
         String errorContent = "操作成功";
 
         try {
+
+            Long zkId = zkAddressDao.getZkId(zk);
+
+            Long appId = appDao.getAppId(zkId,serviceName);
+
+            String modelObj = serviceDao.getServiceDO(zkId,appId).getServiceInfo();
+
+            DubboModel dubboModel = JSON.parseObject(modelObj,DubboModel.class);
+
+            String g = dubboModel.getGroupId();
+
+            String a = dubboModel.getArtifactId();
+
+            String v = dubboModel.getVersion();
+
+            String versionDirName = v.replaceAll("\\.","_");
 
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
 
@@ -219,10 +231,20 @@ public class AppCreateController {
 
         String modelString = JSON.objectToString(dubboModel);
 
-        String modelKey = CommonUtil.getDubboModelKey(dubboModel.getZkAddress(), dubboModel.getServiceName());
+        Long zkId = zkAddressDao.getZkId(dubboModel.getZkAddress());
+        AppDO appDO = new AppDO();
+        appDO.setAppName(dubboModel.getServiceName());
+        appDO.setZkId(zkId);
+        Long appId = appDao.getAppId(zkId,dubboModel.getServiceName());
+        if(appId == null){
+            appId = appDao.addApp(appDO);
+        }
+        serviceDao.delete(zkId,appId);
+        ServiceDO serviceDO = new ServiceDO();
+        serviceDO.setAppId(appId);
+        serviceDO.setServiceInfo(modelString);
+        serviceDO.setZkId(zkId);
+        serviceDao.addService(serviceDO);
 
-        redisRepository.mapPut(RedisKeys.DUBBO_MODEL_KEY, modelKey, modelString);
-
-        redisRepository.setAdd(dubboModel.getZkAddress(), dubboModel.getServiceName());
     }
 }

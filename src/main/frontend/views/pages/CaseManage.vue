@@ -29,6 +29,7 @@
                  style="margin:10px;width:98%;min-width:600px;">
 
             <el-tabs v-model="pageActiveName" type="border-card" @tab-click="tabSwitch">
+             <!--
                 <el-tab-pane label="场景管理" key="0" name="场景管理">
                     <el-table
                             border
@@ -81,10 +82,10 @@
                             :total="scenetotal"
                             style="float:right;">
                     </el-pagination>
-                </el-tab-pane>
-                <el-tab-pane label="用例管理" :key="1" name="用例管理">
-                    <el-table stripe
-                              border
+                </el-tab-pane> -->
+                <el-tab-pane label="用例管理" :key="0" name="用例管理">
+                    <el-table border
+                              :row-class-name="tableRowClassName"
                               :data="getFilterData()"
                     >
 
@@ -135,14 +136,14 @@
                             </template>
 
                             <template slot-scope="scope">
-
+                                <!--
                                 <el-button
                                         type="primary"
                                         size="mini"
                                         plain
                                         :disabled = "scope.row.hasAdd"
                                         @click="handleSelect(scope.$index, scope.row)">添加到场景</el-button>
-
+                                -->
                                 <el-button
                                         type="warning"
                                         size="mini"
@@ -166,6 +167,7 @@
             </el-tabs>
 
             <br/>
+            <!--
             <el-table
                     border
                     ref="dragTable"
@@ -243,6 +245,7 @@
                 </codemirror>
             </div>
             <br/>
+
             <el-button :loading="isRunning" type="success" v-on:click="runSelectCases">运行场景</el-button>
 
             <el-dialog title="保存到场景用例" :visible.sync="dialogFormVisible">
@@ -297,6 +300,7 @@
                 </el-col>
             </el-row>
             <br/>
+             -->
         </el-form>
     </div>
 </template>
@@ -341,7 +345,7 @@
 
                 cachePageName:'cacheManageContent',
 
-                pageActiveName:'场景管理',
+                pageActiveName:'用例管理',
 
                 dialogFormVisible:false,
 
@@ -439,19 +443,7 @@
                 });
             },
             setSort() {
-                const el = this.$refs.dragTable.$el.querySelectorAll('.el-table__body-wrapper > table > tbody')[0]
-                this.sortable = Sortable.create(el, {
-                    ghostClass: 'sortable-ghost', // Class name for the drop placeholder,
-                    setData: function(dataTransfer) {
-                        // to avoid Firefox bug
-                        // Detail see : https://github.com/RubaXa/Sortable/issues/1012
-                        dataTransfer.setData('Text', '')
-                    },
-                    onEnd: evt => {
-                        const targetRow = this.selectGroupWithCases.splice(evt.oldIndex, 1)[0]
-                        this.selectGroupWithCases.splice(evt.newIndex, 0, targetRow)
-                    }
-                })
+
             },
             getFilterData:function(){
                 this.search = this.search.trim();

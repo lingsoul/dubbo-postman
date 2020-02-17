@@ -24,11 +24,12 @@
 
 package com.dubbo.postman.controller;
 
+import com.dubbo.postman.dao.AppDao;
+import com.dubbo.postman.dao.ZkAddressDao;
 import com.dubbo.postman.dto.WebApiRspDto;
 import com.dubbo.postman.repository.LocalStore;
 import com.dubbo.postman.service.load.ApiJarClassLoader;
 import com.dubbo.postman.service.load.LoadRuntimeInfo;
-import com.dubbo.postman.repository.RedisRepository;
 import com.dubbo.postman.service.appfind.zk.ZkServiceFactory;
 import com.dubbo.postman.service.appfind.entity.InterfaceMetaInfo;
 import com.dubbo.postman.domain.DubboInterfaceModel;
@@ -54,11 +55,15 @@ import java.util.Set;
 @RequestMapping("/dubbo-postman/")
 public class AppDetailController extends AbstractController{
     
-    @Autowired
-    private RedisRepository cacheService;
 
     @Autowired
     LoadRuntimeInfo loadJarClassService;
+
+    @Autowired
+    private ZkAddressDao zkAddressDao;
+
+    @Autowired
+    private AppDao appDao;
 
     @RequestMapping(value = "all-zk", method = RequestMethod.GET)
     @ResponseBody
@@ -97,10 +102,11 @@ public class AppDetailController extends AbstractController{
     @RequestMapping(value = "result/serviceNames",method = {RequestMethod.GET})
     @ResponseBody
     public WebApiRspDto getServiceName(@RequestParam(value = "zk") String zk){
-        
-        Set<Object> serviceNameSet = cacheService.members(zk);
-        
+
+        Long id = zkAddressDao.getZkId(zk);
+        List<String> serviceNameSet = appDao.getAppList(id);
         return WebApiRspDto.success(serviceNameSet);
+
     }
 
     /**

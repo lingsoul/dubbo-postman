@@ -24,14 +24,16 @@
 
 package com.dubbo.postman.config;
 
-import com.dubbo.postman.repository.RedisRepository;
+import com.dubbo.postman.dao.AppDao;
+import com.dubbo.postman.dao.ServiceDao;
+import com.dubbo.postman.dao.ZkAddressDao;
+import com.dubbo.postman.entity.ServiceDO;
 import com.dubbo.postman.service.appfind.zk.ZkServiceFactory;
 import com.dubbo.postman.service.dubboinvoke.TemplateBuilder;
 import com.dubbo.postman.domain.DubboModel;
-import com.dubbo.postman.util.RedisKeys;
 import com.dubbo.postman.util.FileWithString;
 import com.dubbo.postman.util.JSON;
-import com.dubbo.postman.util.CommonUtil;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -47,7 +49,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URL;
-import java.util.Set;
+import java.util.List;
 
 /**
  * @author everythingbest
@@ -58,23 +60,24 @@ public class Initializer {
     private Logger logger = LoggerFactory.getLogger(Initializer.class);
 
 
-    public void loadCreatedService(RedisRepository redisRepository,
-                                   String dubboModelRedisKey,
+    public void loadCreatedService(ZkAddressDao zkAddressDao, AppDao appDao, ServiceDao serviceDao,
                                    TemplateBuilder templateBuilder){
 
-        Set<Object> keys = redisRepository.mapGetKeys(dubboModelRedisKey);
+        List<ServiceDO> serviceDOS = serviceDao.getAll();
 
-        logger.info("已经创建的服务数量:" + keys.size());
+        logger.info("已经创建的服务数量:" + serviceDOS.size());
 
-        for (Object key : keys) {
+        for (ServiceDO serviceDO : serviceDOS) {
 
-            String zk = CommonUtil.getZk((String) key);
+            String zk = zkAddressDao.getZkAddress(serviceDO.getZkId());
 
-            String serviceName = CommonUtil.getServiceName((String) key);
+            if(StringUtils.isBlank(zk)){
+                continue;
+            }
 
-            Object object = redisRepository.mapGet(dubboModelRedisKey, key);
+            String serviceName = appDao.getAppName(serviceDO.appId);
 
-            String dubboModelString = (String) object;
+            String dubboModelString = serviceDO.getServiceInfo();
 
             DubboModel dubboModel = JSON.parseObject(dubboModelString, DubboModel.class);
 
@@ -88,7 +91,7 @@ public class Initializer {
 
     void copySettingXml(String userHomePath) throws Exception {
 
-        File file = new File(userHomePath+"/.m2/settings.xml");
+        File file = new File(userHomePath+"/.m2/setting.xml");
 
         if(file.exists()){
 
@@ -154,7 +157,7 @@ public class Initializer {
 
             DOMSource source = new DOMSource(doc);
 
-            newPath = newPath + "/settings.xml";
+            newPath = newPath + "/setting.xml";
 
             logger.info("setting.xml路径:"+newPath);
 
@@ -174,9 +177,9 @@ public class Initializer {
         }
     }
 
-    void loadZkAddress(RedisRepository redisRepository){
+    void loadZkAddress(ZkAddressDao zkAddressDao){
 
-        Set serverList = redisRepository.members(RedisKeys.ZK_REDIS_KEY);
+        List<String> serverList = zkAddressDao.getZkList();
 
         if(serverList == null || serverList.isEmpty()){
 

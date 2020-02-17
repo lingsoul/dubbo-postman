@@ -24,12 +24,14 @@
 
 package com.dubbo.postman.controller;
 
+import com.dubbo.postman.dao.CaseDao;
 import com.dubbo.postman.dto.UserCaseDto;
 import com.dubbo.postman.dto.UserCaseGroupDto;
 import com.dubbo.postman.dto.WebApiRspDto;
-import com.dubbo.postman.repository.RedisRepository;
-import com.dubbo.postman.util.RedisKeys;
+import com.dubbo.postman.entity.TestCaseDO;
+import com.dubbo.postman.entity.TestCaseGroupDO;
 import com.dubbo.postman.util.JSON;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +52,8 @@ public class TestCaseController extends AbstractController{
     static Logger logger = LoggerFactory.getLogger(TestCaseController.class);
 
     @Autowired
-    private RedisRepository cacheService;
+    private CaseDao caseDao;
+
 
     @RequestMapping(value = "case/save", method = RequestMethod.POST)
     @ResponseBody
@@ -58,13 +61,28 @@ public class TestCaseController extends AbstractController{
 
         try {
 
+            String value = JSON.objectToString(caseDto);
             String groupName = caseDto.getGroupName();
 
-            cacheService.setAdd(RedisKeys.CASE_KEY, groupName);
+            TestCaseGroupDO caseGroupDO = new TestCaseGroupDO();
+            caseGroupDO.setGroupName(groupName);
 
-            String value = JSON.objectToString(caseDto);
+            Long groupId = this.caseDao.getGroupId(groupName);
 
-            cacheService.mapPut(groupName, caseDto.getCaseName(), value);
+            if(groupId == null){
+                groupId = this.caseDao.addCaseGroup(caseGroupDO);
+            }
+
+            Long caseId = this.caseDao.getCaseId(groupName,caseDto.getCaseName());
+            if(caseId != null){
+                this.caseDao.updateCaseData(caseId,value);
+            }else{
+                TestCaseDO testCaseDO = new TestCaseDO();
+                testCaseDO.setGroupId(groupId);
+                testCaseDO.setCaseData(value);
+                testCaseDO.setCaseName(caseDto.getCaseName());
+                this.caseDao.addCase(testCaseDO);
+            }
 
             return WebApiRspDto.success(Boolean.TRUE);
 
@@ -84,15 +102,15 @@ public class TestCaseController extends AbstractController{
 
         try {
 
-            Set<Object> groupNames = cacheService.members(RedisKeys.CASE_KEY);
+            List<TestCaseGroupDO> groupDOList = this.caseDao.getAllGroup();
 
-            for (Object obj : groupNames) {
+            for (TestCaseGroupDO testCaseGroupDO : groupDOList) {
 
-                Set<Object> caseNames = cacheService.mapGetKeys((String) obj);
+                List<TestCaseDO> caseDOList = this.caseDao.getTestCaseByGroupId(testCaseGroupDO.getId());
 
-                for(Object sub : caseNames){
+                for(TestCaseDO testCaseDO : caseDOList){
 
-                    String jsonStr = (String) cacheService.mapGet(obj.toString(), sub.toString());
+                    String jsonStr = testCaseDO.getCaseData();
 
                     UserCaseDto caseDto = JSON.parseObject(jsonStr, UserCaseDto.class);
 
@@ -119,24 +137,24 @@ public class TestCaseController extends AbstractController{
 
         try {
 
-            Set<Object> groupNames = cacheService.members(RedisKeys.CASE_KEY);
+            List<TestCaseGroupDO> groupDOList = this.caseDao.getAllGroup();
 
-            for (Object obj : groupNames) {
+            for (TestCaseGroupDO testCaseGroupDO : groupDOList) {
 
                 UserCaseGroupDto parentDto = new UserCaseGroupDto();
-                parentDto.setValue(obj.toString());
-                parentDto.setLabel(obj.toString());
+                parentDto.setValue(testCaseGroupDO.getGroupName());
+                parentDto.setLabel(testCaseGroupDO.getGroupName());
 
-                Set<Object> caseNames = cacheService.mapGetKeys((String) obj);
+                List<TestCaseDO> caseDOList = this.caseDao.getTestCaseByGroupId(testCaseGroupDO.getId());
 
                 List<UserCaseGroupDto> children = new ArrayList<>(1);
                 parentDto.setChildren(children);
 
-                for(Object sub : caseNames){
+                for(TestCaseDO testCaseDO : caseDOList){
 
                     UserCaseGroupDto dto = new UserCaseGroupDto();
-                    dto.setValue(sub.toString());
-                    dto.setLabel(sub.toString());
+                    dto.setValue(testCaseDO.getCaseName());
+                    dto.setLabel(testCaseDO.getCaseName());
                     dto.setChildren(null);
                     children.add(dto);
                 }
@@ -162,15 +180,15 @@ public class TestCaseController extends AbstractController{
 
         try {
 
-            Set<Object> groupNames = cacheService.members(RedisKeys.CASE_KEY);
+            List<TestCaseGroupDO> groupDOList = this.caseDao.getAllGroup();
 
-            for (Object obj : groupNames) {
+            for (TestCaseGroupDO testCaseGroupDO : groupDOList) {
 
                 UserCaseGroupDto groupDto = new UserCaseGroupDto();
 
-                groupDto.setValue(obj.toString());
+                groupDto.setValue(testCaseGroupDO.getGroupName());
 
-                groupDto.setLabel(obj.toString());
+                groupDto.setLabel(testCaseGroupDO.getGroupName());
 
                 groupDto.setChildren(null);
 
@@ -194,7 +212,10 @@ public class TestCaseController extends AbstractController{
 
         try {
 
-            String jsonStr = (String) cacheService.mapGet(groupName, caseName);
+            String jsonStr = this.caseDao.getCaseData(groupName,caseName);
+            if(StringUtils.isBlank(jsonStr)){
+                return WebApiRspDto.error("用例不存在，请刷下页面");
+            }
 
             UserCaseDto caseDto = JSON.parseObject(jsonStr, UserCaseDto.class);
 
@@ -230,7 +251,8 @@ public class TestCaseController extends AbstractController{
 
         try {
 
-            cacheService.removeMap(groupName, caseName);
+            Long groupId =  this.caseDao.getGroupId(groupName);
+            this.caseDao.deleteCase(groupId,caseName);
 
             return WebApiRspDto.success("删除成功");
 

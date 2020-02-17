@@ -24,11 +24,11 @@
 
 package com.dubbo.postman.controller;
 
+import com.dubbo.postman.dao.ZkAddressDao;
 import com.dubbo.postman.dto.WebApiRspDto;
-import com.dubbo.postman.repository.RedisRepository;
+import com.dubbo.postman.entity.ZkAddressDO;
 import com.dubbo.postman.service.appfind.zk.ZkServiceFactory;
 
-import com.dubbo.postman.util.RedisKeys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.annotation.Resource;
-import java.util.Set;
+import java.util.List;
 
 /**
  * @author everythingbest
@@ -49,17 +49,19 @@ public class ZkConfigController {
     
     @Value("${dubbo.postman.env}")
     private String env;
-    
+
     @Resource
-    RedisRepository redisRepository;
+    ZkAddressDao zkAddressDao;
+
 
     @RequestMapping(value = "configs", method = RequestMethod.GET)
     @ResponseBody
     public WebApiRspDto configs(){
 
-        Set<Object> sets = redisRepository.members(RedisKeys.ZK_REDIS_KEY);
+      //  Set<Object> sets = redisRepository.members(RedisKeys.ZK_REDIS_KEY);
+        List<String> zks = zkAddressDao.getZkList();
+        return WebApiRspDto.success(zks);
 
-        return WebApiRspDto.success(sets);
     }
 
     /**
@@ -93,10 +95,14 @@ public class ZkConfigController {
         try {
             ZkServiceFactory.get(zk);
         }catch (Exception exp){
+            ZkServiceFactory.ZK_SET.remove(zk);
             return WebApiRspDto.error("zk地址连接失败:"+exp.getMessage());
         }
 
-        redisRepository.setAdd(RedisKeys.ZK_REDIS_KEY,zk);
+        ZkAddressDO zkAddressDO = new ZkAddressDO();
+        zkAddressDO.setZkAddress(zk);
+        zkAddressDao.addZk(zkAddressDO);
+
 
         return WebApiRspDto.success("保存成功");
     }
@@ -122,7 +128,10 @@ public class ZkConfigController {
             
             ZkServiceFactory.ZKSERVICE_MAP.remove(zk);
 
-            redisRepository.setRemove(RedisKeys.ZK_REDIS_KEY,zk);
+      //      redisRepository.setRemove(RedisKeys.ZK_REDIS_KEY,zk);
+
+            zkAddressDao.delZk(zk);
+
 
             return WebApiRspDto.success("删除成功");
             
