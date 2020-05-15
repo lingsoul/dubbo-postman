@@ -35,7 +35,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 如果使用cas,把exclude及后面的值去掉即可
  * @author everythingbest
  */
-@SpringBootApplication(exclude = org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class)
+@SpringBootApplication(exclude = org.springframework.boot.autoconfigure.security.SecurityAutoConfiguration.class)
 public class Main {
 
     private static Logger logger = LoggerFactory.getLogger(Main.class);

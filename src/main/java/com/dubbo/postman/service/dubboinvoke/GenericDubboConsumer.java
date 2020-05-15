@@ -24,14 +24,14 @@
 
 package com.dubbo.postman.service.dubboinvoke;
 
+import com.alibaba.dubbo.config.ApplicationConfig;
+import com.alibaba.dubbo.config.ReferenceConfig;
+import com.alibaba.dubbo.config.RegistryConfig;
+import com.alibaba.dubbo.rpc.service.GenericService;
 import com.dubbo.postman.dto.WebApiRspDto;
 import com.dubbo.postman.domain.RequestTemplate;
 import com.dubbo.postman.util.Constant;
 import com.dubbo.postman.util.ExceptionHelper;
-import org.apache.dubbo.config.ApplicationConfig;
-import org.apache.dubbo.config.ReferenceConfig;
-import org.apache.dubbo.config.RegistryConfig;
-import org.apache.dubbo.rpc.service.GenericService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,7 +51,7 @@ public class GenericDubboConsumer {
 
     private ApplicationConfig application = new ApplicationConfig(Constant.APP_NAME);
 
-    private Map<String, ReferenceConfig<GenericService>> cachedReference = new WeakHashMap<>();
+    private Map<String,ReferenceConfig<GenericService>> cachedReference = new WeakHashMap<>();
 
     @Resource
     TemplateFetcher paramParser;
